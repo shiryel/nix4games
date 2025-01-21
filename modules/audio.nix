@@ -98,7 +98,7 @@ lib.mkIf config.nix4games.audio.enable {
     #  };
     #};
   };
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
 
   # RT Config
   # FIXES: https://github.com/heftig/rtkit/issues/25

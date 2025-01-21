@@ -135,13 +135,11 @@ mkIf config.nix4games.theme.enable {
 
     enableDefaultPackages = true;
     packages = with pkgs; [
-      (nerdfonts.override {
-        enableWindowsFonts = true;
-        # Reduce size of NerdFonts:
-        # https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/data/fonts/nerdfonts/shas.nix
-        # SymbolsOnly is used to mix fonts like on the waybar
-        fonts = [ "NerdFontsSymbolsOnly" "Cousine" ];
-      })
+      # To list all fonts use:
+      #   builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts)
+      nerd-fonts.cousine
+      nerd-fonts.symbols-only # SymbolsOnly is used to mix fonts like on the waybar
+
       carlito
       dejavu_fonts
       fira
@@ -149,7 +147,6 @@ mkIf config.nix4games.theme.enable {
       fira-mono
       inconsolata
       inter
-      inter-ui
       libertine
       noto-fonts
       noto-fonts-emoji

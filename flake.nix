@@ -1,10 +1,10 @@
 {
   description = "NixOS modules for a gamming desktop";
 
-  outputs = { nixpkgs, ... }:
-    let
-      forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
-    in
+  outputs = { ... }:
+    #let
+    #  forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
+    #in
     {
       nixosModules.nix4games.imports = [
         ./options.nix
@@ -17,6 +17,7 @@
         ./modules/nix.nix
         ./modules/services.nix
         ./modules/theme.nix
+        ./modules/wine.nix
         ./modules/xdg_mimes.nix
         ./modules/xdg_portals.nix
       ];

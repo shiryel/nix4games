@@ -39,15 +39,96 @@ lib.mkIf config.nix4games.kernel.enable {
     # https://www.kernel.org/doc/html/latest/scheduler/sched-bwc.html
     "kernel.sched_cfs_bandwidth_slice_us" = 3000;
 
-    # same as FILE DESCRIPTORS configured on pam.loginLimits
-    # for now prefer value recommended by esync
-    # "vm.max_map_count" = 2147483642; 
+    # Maximum number of active memory map areas
+    # kernel default: (USHRT_MAX - MAPCOUNT_ELF_CORE_MARGIN)
+    "vm.max_map_count" = 2147483642;
+
+    ##########
+    # Custom #
+    ##########
+
+    # High Precision Event Timer (similar to rtc.c driver)
+    # mainly used for audio, interrupts can be calculated like: 1000/64 = 15.625ms per CPU
+    # see:
+    # - https://linuxmusicians.com/viewtopic.php?t=25625
+    # - https://github.com/torvalds/linux/blob/e0daef7de1acecdb64c1fa31abc06529abb98710/Documentation/admin-guide/rtc.rst#old-pcat-compatible-driver--devrtc
+    # notes:
+    # - may reduce audio crackling
+    "dev.hpet.max-user-freq" = 2048; # default: 64 hz
+
+    # Max file-handles allocations
+    # configure with a rate of 256 for every 4M of RAM (e.g. for 32GB: 32768/4*256 = 2097152)
+    # NOTE: it's user limited by pam.loginLimits nofile!
+    "fs.file-max" = 2097152; # default: 9223372036854775807
+
+    # https://wiki.archlinux.org/title/Sysctl#Virtual_memory
+    # Percentage of total available memory that contains free pages and reclaimable pages at
+    # which the background kernel flusher threads will start writing out dirty data
+    # A sane value is ~1GB for a fast NVMe, e.g.: 3% of 16 GB = ~491 MB
+    "vm.dirty_ratio" = 6; # default: 20
+
+    # Percentage of total available memory that contains free pages and reclaimable pages at
+    # which the background kernel flusher threads will start writing out dirty data.
+    # A sane value is ~500MB
+    "vm.dirty_background_ratio" = 3; # default: 10
+
+    # https://wiki.archlinux.org/title/Sysctl#VFS_cache
+    # The value controls the tendency of the kernel to reclaim the memory which is used for
+    # caching of directory and inode objects (VFS cache). Lowering it from the default value
+    # of 100 makes the kernel less inclined to reclaim VFS cache (do not set it to 0, this
+    # may produce out-of-memory conditions)
+    "vm.vfs_cache_pressure" = 50; # default: 100
+
+    ############################################################
+    # Tweaking kernel parameters for response time consistency #
+    ############################################################
+    # https://wiki.archlinux.org/title/Gaming#Tweaking_kernel_parameters_for_response_time_consistency
+
+    # Proactive compaction for (Transparent) Hugepage allocation reduces the average but not
+    # necessarily the maximum allocation stalls. Disable proactive compaction because it
+    # introduces jitter according to kernel documentation
+    "vm.compaction_proactiveness" = 0; # default: 20
+
+    # Reduce the watermark boost factor to defragment only one pageblock (2MB on 64-bit x86) in
+    # case of memory fragmentation. After a memory fragmentation event this helps to better keep
+    # the application data in the last level processor cache.
+    "vm.watermark_boost_factor" = 1; # default: 15000
+
+    # If you have enough free RAM increase the number of minimum free Kilobytes to avoid stalls on
+    # memory allocations. Do not set this below 512 KB or above 5% of your systems memory. Reserving 1GB:
+    "vm.min_free_kbytes" =  524288; # default: 67584
+
+    # If you have enough free RAM increase the watermark scale factor to further reduce the
+    # likelihood of allocation stalls. Setting watermark distances to 2.5% of RAM:
+    "vm.watermark_scale_factor" = 250; # default: 10
+
+    # Rough relative IO cost of swapping and filesystem paging
+    # - may reduces audio crackling
+    "vm.swappiness" = 10; # default: 60
+
+    # Disable zone reclaim (locking and moving memory pages that introduces latency spikes)
+    "vm.zone_reclaim_mode" = 0; # default: 0
+
+    # Reduce the maximum page lock acquisition latency while retaining adequate throughput
+    "vm.page_lock_unfairness" = 1; # default: 5
+
+    ########################
+    # Persistent Hugepages #
+    ########################
+    # https://gist.github.com/sjenning/b6bed5bf029c9fd6f078f76b37f0a73f
+    #
+    # "vm.nr_hugepages" = 125; # 2M per page = 250MB reserved
+    # "vm.nr_overcommit_hugepages" = 875; # 250MB + 1750MB = 2GB max
   };
 
-  # https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/monitoring_and_managing_system_status_and_performance/configuring-huge-pages_monitoring-and-managing-system-status-and-performance
-  #boot.kernelParams = [
-  #  "hugepages=1000" # 1000 x 2mb = 2GB
-  #];
+  # There certain uncertainty about THP, as it can improve performance but also degrade it depending on the situation
+  # https://www.reddit.com/r/linux_gaming/comments/uhfjyt/underrated_advice_for_improving_gaming/
+  # Check with:
+  #   cat /proc/meminfo | grep HugePages
+  # (AnonHugePages are the THP)
+  #environment.etc."tmpfiles.d/thp.conf".text = ''
+  #  w /sys/kernel/mm/transparent_hugepage/enabled - - - - never
+  #'';
 
   # see: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/hardened.nix
   boot.blacklistedKernelModules = [

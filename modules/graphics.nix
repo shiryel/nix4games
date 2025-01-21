@@ -10,7 +10,32 @@
 # https://www.reddit.com/r/linux_gaming/comments/v58ts5/quick_heads_up_about_something_i_discovered/
 # https://wiki.archlinux.org/title/Improving_performance#Enabling_PCI_Resizable_BAR
 #
+# -- NOTE --
+#
+# Some other issues can derivate from:
+# - Mouse / Keyboard high polling rate
+#     https://wiki.archlinux.org/title/Mouse_polling_rate#Polling_rate_resulting_in_lag_with_wine
+#     https://bugs.winehq.org/show_bug.cgi?id=46976
+#     https://www.reddit.com/r/AMDHelp/comments/15bfyix/7900_xt_stuttering_frame_drops_gpu_utilization/
+# - Frame drops under "low" GPU utilization
+#     https://gitlab.freedesktop.org/drm/amd/-/issues/1500#note_825883
+#
 # -- TEST -- 
+#
+# Check hardware with:
+#   inxi -Fzxx
+#   glxinfo -B
+#   vulkaninfo --summary
+#
+# Force an AMD GPU with
+#   DRI_PRIME=1 (the number is the device number from inxi result)
+#
+# Limit WINE to cores using
+#   WINE_CPU_TOPOLOGY=6:0,1,2,3,4,5
+#
+# Use OpenGL instead of Vulkan with
+#   PROTON_USE_WINED3D=1
+#
 # You can disable vsync for openGL using
 #   vblank_mode=0
 #   mangohud vblank_mode=0 glxgears
@@ -38,6 +63,8 @@ lib.mkIf config.nix4games.graphics.enable {
     rocmPackages.rocminfo
     #rocmPackages.rocm-smi # ROCm System Management Interface 
   ];
+
+  services.xserver.videoDrivers = [ "modesetting" ];
 
   hardware = {
     graphics = {
@@ -69,7 +96,6 @@ lib.mkIf config.nix4games.graphics.enable {
       ];
     };
   };
-
 
   # Make sure that RADV is the default even if amdvlk is installed
   environment.sessionVariables = { AMD_VULKAN_ICD = "RADV"; };

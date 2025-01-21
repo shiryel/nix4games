@@ -39,16 +39,26 @@ lib.mkIf config.nix4games.xdg_portals.enable {
       xdg-desktop-portal-hyprland
     ];
 
+    # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1050913
+    # https://github.com/emersion/xdg-desktop-portal-wlr/blob/master/contrib/wlroots-portals.conf
+    # https://github.com/emersion/xdg-desktop-portal-wlr/pull/315
     config = {
       # https://wiki.archlinux.org/title/XDG_Desktop_Portal#List_of_backends_and_interfaces
       # cat /etc/xdg/xdg-desktop-portal/portals.conf
-      sway = {
+      sway = lib.mkForce {
+        # https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/programs/wayland/sway.nix#L147
         default = [
-          "wlr"
+          "gtk"
         ];
-        "org.freedesktop.impl.portal.ScreenCast" = "hyprland";
-        "org.freedesktop.impl.portal.Screenshot" = "hyprland";
+
+        #"org.freedesktop.impl.portal.ScreenCast" = "hyprland";
+        #"org.freedesktop.impl.portal.Screenshot" = "hyprland";
         "org.freedesktop.impl.portal.Secret" = "gnome-keyring";
+
+        # ignore inhibit because gtk portal always returns as success,
+        # despite the wlr portal not having an implementation,
+        # stopping firefox from using wayland idle-inhibit
+        "org.freedesktop.impl.portal.Inhibit" = "none";
       };
     };
 
