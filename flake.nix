@@ -17,7 +17,6 @@
         ./modules/nix.nix
         ./modules/services.nix
         ./modules/theme.nix
-        ./modules/wine.nix
         ./modules/xdg_mimes.nix
         ./modules/xdg_portals.nix
       ];

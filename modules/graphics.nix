@@ -59,10 +59,9 @@ lib.mkIf config.nix4games.graphics.enable {
     glxinfo # glxgears
     vulkan-tools # vulkaninfo
     clinfo
-
-    rocmPackages.rocminfo
     #rocmPackages.rocm-smi # ROCm System Management Interface 
-  ];
+  ] ++ (if config.nixpkgs.config ? rocmSupport && config.nixpkgs.config.rocmSupport then
+    [ rocmPackages.rocminfo ] else [ ]);
 
   services.xserver.videoDrivers = [ "modesetting" ];
 
@@ -88,21 +87,22 @@ lib.mkIf config.nix4games.graphics.enable {
         # https://github.com/i-rinat/libvdpau-va-gl
         # VDPAU driver with VA-API/OpenGL backend.
         libvdpau-va-gl
-
+      ] ++ (if config.nixpkgs.config ? rocmSupport && config.nixpkgs.config.rocmSupport then [
         ### OpenCL ###
         # https://github.com/NixOS/nixos-hardware/blob/master/common/gpu/amd/default.nix#L39
         rocmPackages.clr
         rocmPackages.clr.icd
-      ];
+      ] else [ ]);
     };
   };
 
   # Make sure that RADV is the default even if amdvlk is installed
   environment.sessionVariables = { AMD_VULKAN_ICD = "RADV"; };
 
+  # TODO:
   # Enable support to AMD GPU on some software
   # e.g.: https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/tools/system/btop/default.nix#L12
-  nixpkgs.config.rocmSupport = true;
+  #nixpkgs.config.rocmSupport = true;
 
   # https://wiki.archlinux.org/title/AMDGPU#Boot_parameter
   #boot.kernelParams = [ "amdgpu.ppfeaturemask=0xfff7ffff" ];

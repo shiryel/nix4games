@@ -7,6 +7,15 @@ lib.mkIf config.nix4games.kernel.enable {
   # - linuxPackages_hardened
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  environment.systemPackages = [
+    config.boot.kernelPackages.turbostat
+
+    # see: https://wiki.archlinux.org/title/Realtime_kernel_patchset#Latency_testing_utilities
+    # sudo cyclictest --smp -p98 -m
+    # sudo hwlatdetect --duration=120 --threshold=15
+    pkgs.rt-tests
+  ];
+
   boot.kernel.sysctl = {
     # Disable mitigation of: "one user process from a guest system may block other 
     # cores from accessing memory and cause performance degradation across the whole system"
@@ -96,7 +105,7 @@ lib.mkIf config.nix4games.kernel.enable {
 
     # If you have enough free RAM increase the number of minimum free Kilobytes to avoid stalls on
     # memory allocations. Do not set this below 512 KB or above 5% of your systems memory. Reserving 1GB:
-    "vm.min_free_kbytes" =  524288; # default: 67584
+    "vm.min_free_kbytes" = 524288; # default: 67584
 
     # If you have enough free RAM increase the watermark scale factor to further reduce the
     # likelihood of allocation stalls. Setting watermark distances to 2.5% of RAM:
@@ -129,6 +138,16 @@ lib.mkIf config.nix4games.kernel.enable {
   #environment.etc."tmpfiles.d/thp.conf".text = ''
   #  w /sys/kernel/mm/transparent_hugepage/enabled - - - - never
   #'';
+
+  boot = {
+    kernelParams = [
+      "threadirqs"
+    ];
+    postBootCommands = ''
+      echo 2048 > /sys/class/rtc/rtc0/max_user_freq
+    '';
+    #setpci -v -d *:* latency_timer=b0
+  };
 
   # see: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/hardened.nix
   boot.blacklistedKernelModules = [
