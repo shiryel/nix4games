@@ -16,7 +16,17 @@ lib.mkIf config.nix4games.kernel.enable {
     pkgs.rt-tests
   ];
 
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+    memoryPercent = 40;
+  };
+
   boot.kernel.sysctl = {
+    # zramSwap with zstd has zero throughput gain from readahead
+    # see: https://www.reddit.com/r/Fedora/comments/mzun99/new_zram_tuning_benchmarks/
+    "vm.page-cluster" = 0; # default: 3
+
     # Disable mitigation of: "one user process from a guest system may block other 
     # cores from accessing memory and cause performance degradation across the whole system"
     # as some games makes heavy use of this feature, and this penalises them (or crash)
@@ -112,8 +122,9 @@ lib.mkIf config.nix4games.kernel.enable {
     "vm.watermark_scale_factor" = 250; # default: 10
 
     # Rough relative IO cost of swapping and filesystem paging
-    # - may reduces audio crackling
-    "vm.swappiness" = 10; # default: 60
+    # - may impact audio crackling
+    # NOTE: as we are using zramSwap this value can be higher than 10, even 100 should be fine
+    "vm.swappiness" = 180; # default: 60, recommended if using swap: 10
 
     # Disable zone reclaim (locking and moving memory pages that introduces latency spikes)
     "vm.zone_reclaim_mode" = 0; # default: 0
