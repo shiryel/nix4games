@@ -31,40 +31,25 @@ let
         modules_install
     '';
 
-    NIX_CFLAGS_COMPILE = [ "-O2" "-march=native" "-mtune=native" ];
+    NIX_CFLAGS_COMPILE = [ "-O3" "-march=native" "-mtune=native" ];
 
-    patches = kernel.patches ++ [
-      # https://wiki.nixos.org/wiki/VR#Patching_AMDGPU_to_allow_high_priority_queues
-      # PATCH FROM: 
-      # https://github.com/Frogging-Family/community-patches/blob/a6a468420c0df18d51342ac6864ecd3f99f7011e/linux61-tkg/cap_sys_nice_begone.mypatch
-      (pkgs.writeText "cap_sys_nice_begone.patch" ''
-        From fe059b4c373639fc5d69067e62de3f2a0e44a037 Mon Sep 17 00:00:00 2001
-        From: Sefa Eyeoglu <contact@scrumplex.net>
-        Date: Fri, 17 Mar 2023 16:50:57 +0100
-        Subject: [PATCH] amdgpu: allow any ctx priority
-
-        Signed-off-by: Sefa Eyeoglu <contact@scrumplex.net>
-        ---
-         drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.c | 2 +-
-         1 file changed, 1 insertion(+), 1 deletion(-)
-
-        diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.c
-        index d2139ac12159..c7f1d36329c8 100644
-        --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.c
-        +++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.c
-        @@ -107,7 +107,7 @@ static int amdgpu_ctx_priority_permit(struct drm_file *filp,
-         	if (drm_is_current_master(filp))
-         		return 0;
- 
-        -	return -EACCES;
-        +	return 0;
-         }
- 
-         static enum amdgpu_gfx_pipe_priority amdgpu_ctx_prio_to_gfx_pipe_prio(int32_t prio)
-        -- 
-        2.39.2
-      '')
-    ];
+    patches = kernel.patches ++
+      (if config.nix4games.amdgpu.fullrgb then [
+        # https://gitlab.freedesktop.org/drm/amd/-/issues/476
+        # https://github.com/swaywm/sway/issues/3173
+        # https://web.archive.org/web/20210525124315/https://www.brad-x.com/2017/08/07/quick-tip-setting-the-color-space-value-in-wayland/
+        # TEST on tty with:
+        # proptest -M amdgpu -D /dev/dri/card1 94 connector 40 0
+        # proptest -M amdgpu -D /dev/dri/card1 94 connector 40 1
+        # proptest -M amdgpu -D /dev/dri/card1 94 connector 40 2
+        ../patches/amdgpu_full_rgb.patch
+      ] else [ ]) ++
+      (if config.nix4games.amdgpu.no_cap_sys_nice then [
+        # https://wiki.nixos.org/wiki/VR#Patching_AMDGPU_to_allow_high_priority_queues
+        # PATCH FROM:
+        # https://github.com/Frogging-Family/community-patches/blob/a6a468420c0df18d51342ac6864ecd3f99f7011e/linux61-tkg/cap_sys_nice_begone.mypatch
+        ../patches/amdgpu_cap_sys_nice_begone.patch
+      ] else [ ]);
 
     meta = {
       description = "AMD GPU kernel module";
@@ -73,5 +58,10 @@ let
   };
 in
 lib.mkIf config.nix4games.amdgpu.enable {
+  boot.kernelParams = lib.mkIf config.nix4games.amdgpu.fullrgb [
+    # enables full rgb from patch
+    "amdgpu.pixel_encoding=rgb"
+  ];
+
   boot.extraModulePackages = [ amdgpu_module ];
 }

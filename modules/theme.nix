@@ -127,6 +127,13 @@ mkIf config.nix4games.theme.enable {
     keyMap = "us";
   };
 
+  # NOTE: on Wayland each WM/DE has it's own way to configure xkb
+  services.xserver.xkb = {
+    layout = "us";
+    variant = "altgr-intl";
+    options = "nodeadkeys";
+  };
+
   fonts = {
     fontconfig.enable = true;
     fontDir.enable = true;

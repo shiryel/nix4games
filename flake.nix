@@ -16,6 +16,7 @@
         ./modules/network.nix
         ./modules/nix.nix
         ./modules/services.nix
+        ./modules/oom.nix
         ./modules/theme.nix
         ./modules/xdg_mimes.nix
         ./modules/xdg_portals.nix

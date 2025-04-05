@@ -102,7 +102,7 @@ lib.mkIf config.nix4games.graphics.enable {
   # TODO:
   # Enable support to AMD GPU on some software
   # e.g.: https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/tools/system/btop/default.nix#L12
-  #nixpkgs.config.rocmSupport = true;
+  nixpkgs.config.rocmSupport = true;
 
   # https://wiki.archlinux.org/title/AMDGPU#Boot_parameter
   #boot.kernelParams = [ "amdgpu.ppfeaturemask=0xfff7ffff" ];

@@ -32,6 +32,7 @@ lib.mkIf config.nix4games.kernel.enable {
     # as some games makes heavy use of this feature, and this penalises them (or crash)
     # NOTE: when finding a split_lock the following log will be created: "took a split_lock trap at address:"
     # https://lwn.net/Articles/790464/
+    # https://lwn.net/Articles/911219/
     # https://www.phoronix.com/news/Linux-Splitlock-Hurts-Gaming
     # https://github.com/ValveSoftware/steam-for-linux/issues/8003
     "kernel.split_lock_mitigate" = 0;
@@ -153,6 +154,7 @@ lib.mkIf config.nix4games.kernel.enable {
   boot = {
     kernelParams = [
       "threadirqs"
+      "split_lock_detect=off" # do not detect or warn about split_lock
     ];
     postBootCommands = ''
       echo 2048 > /sys/class/rtc/rtc0/max_user_freq
