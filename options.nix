@@ -18,6 +18,7 @@ with lib;
     cpu.enable = mkEnableOption "enable cpu module";
     graphics.enable = mkEnableOption "enable graphics module";
     kernel.enable = mkEnableOption "enable kernel module";
+    kernel.enableZram = mkEnableOption "enable kernel zram config";
     network.enable = mkEnableOption "enable network module";
     nix.enable = mkEnableOption "enable nix module";
     services.enable = mkEnableOption "enable services module";

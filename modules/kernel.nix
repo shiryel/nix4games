@@ -7,8 +7,12 @@ lib.mkIf config.nix4games.kernel.enable {
   # - linuxPackages_hardened
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  boot.loader.grub.memtest86.enable = true;
+  boot.loader.systemd-boot.memtest86.enable = true;
+
   environment.systemPackages = [
     config.boot.kernelPackages.turbostat
+    config.boot.kernelPackages.perf
 
     # see: https://wiki.archlinux.org/title/Realtime_kernel_patchset#Latency_testing_utilities
     # sudo cyclictest --smp -p98 -m
@@ -17,34 +21,12 @@ lib.mkIf config.nix4games.kernel.enable {
   ];
 
   zramSwap = {
-    enable = true;
+    enable = config.nix4games.kernel.enableZram;
     algorithm = "zstd";
-    memoryPercent = 40;
+    memoryPercent = 40; # maximum amount, not the used amount
   };
 
   boot.kernel.sysctl = {
-    # zramSwap with zstd has zero throughput gain from readahead
-    # see: https://www.reddit.com/r/Fedora/comments/mzun99/new_zram_tuning_benchmarks/
-    "vm.page-cluster" = 0; # default: 3
-
-    # Disable mitigation of: "one user process from a guest system may block other 
-    # cores from accessing memory and cause performance degradation across the whole system"
-    # as some games makes heavy use of this feature, and this penalises them (or crash)
-    # NOTE: when finding a split_lock the following log will be created: "took a split_lock trap at address:"
-    # https://lwn.net/Articles/790464/
-    # https://lwn.net/Articles/911219/
-    # https://www.phoronix.com/news/Linux-Splitlock-Hurts-Gaming
-    # https://github.com/ValveSoftware/steam-for-linux/issues/8003
-    "kernel.split_lock_mitigate" = 0;
-    # Used to reboot the machine in the case that the kernel reaches a halting state.
-    # Normal users don't need this feature and can disable it, as it can generate a high number of
-    # interrupts, slowing down the system
-    # https://wiki.archlinux.org/title/Improving_performance#Watchdogs
-    # https://unix.stackexchange.com/questions/353895/should-i-disable-nmi-watchdog-permanently-or-not
-    "kernel.nmi_watchdog" = 0;
-    "kernel.soft_watchdog" = 0;
-    "kernel.watchdog" = 0;
-
     ################################
     # Default configs from SteamOS # 
     ################################
@@ -66,6 +48,25 @@ lib.mkIf config.nix4games.kernel.enable {
     ##########
     # Custom #
     ##########
+
+    # Disable mitigation of: "one user process from a guest system may block other 
+    # cores from accessing memory and cause performance degradation across the whole system"
+    # as some games makes heavy use of this feature, and this penalises them (or crash)
+    # NOTE: when finding a split_lock the following log will be created: "took a split_lock trap at address:"
+    # https://lwn.net/Articles/790464/
+    # https://lwn.net/Articles/911219/
+    # https://www.phoronix.com/news/Linux-Splitlock-Hurts-Gaming
+    # https://github.com/ValveSoftware/steam-for-linux/issues/8003
+    "kernel.split_lock_mitigate" = 0;
+
+    # Used to reboot the machine in the case that the kernel reaches a halting state.
+    # Normal users don't need this feature and can disable it, as it can generate a high number of
+    # interrupts, slowing down the system
+    # https://wiki.archlinux.org/title/Improving_performance#Watchdogs
+    # https://unix.stackexchange.com/questions/353895/should-i-disable-nmi-watchdog-permanently-or-not
+    "kernel.nmi_watchdog" = 0;
+    "kernel.soft_watchdog" = 0;
+    "kernel.watchdog" = 0;
 
     # High Precision Event Timer (similar to rtc.c driver)
     # mainly used for audio, interrupts can be calculated like: 1000/64 = 15.625ms per CPU
@@ -124,14 +125,16 @@ lib.mkIf config.nix4games.kernel.enable {
 
     # Rough relative IO cost of swapping and filesystem paging
     # - may impact audio crackling
-    # NOTE: as we are using zramSwap this value can be higher than 10, even 100 should be fine
-    "vm.swappiness" = 180; # default: 60, recommended if using swap: 10
+    "vm.swappiness" = 10; # default: 60, recommended if using swap: 10
 
     # Disable zone reclaim (locking and moving memory pages that introduces latency spikes)
     "vm.zone_reclaim_mode" = 0; # default: 0
 
     # Reduce the maximum page lock acquisition latency while retaining adequate throughput
     "vm.page_lock_unfairness" = 1; # default: 5
+
+    # per core statistics update task
+    "vm.stat_interval" = 10; # default: 1 (seconds)
 
     ########################
     # Persistent Hugepages #
@@ -140,10 +143,22 @@ lib.mkIf config.nix4games.kernel.enable {
     #
     # "vm.nr_hugepages" = 125; # 2M per page = 250MB reserved
     # "vm.nr_overcommit_hugepages" = 875; # 250MB + 1750MB = 2GB max
-  };
+  } // (if config.nix4games.kernel.enableZram then {
+    # zramSwap with zstd has zero throughput gain from readahead
+    # see: https://www.reddit.com/r/Fedora/comments/mzun99/new_zram_tuning_benchmarks/
+    "vm.page-cluster" = 0; # default: 3
+
+    # Rough relative IO cost of swapping and filesystem paging
+    # - may impact audio crackling
+    # NOTE: as we are using zramSwap this value can be higher than 10, even 100 should be fine
+    "vm.swappiness" = 180; # default: 60, recommended if using swap: 10
+  } else { });
 
   # There certain uncertainty about THP, as it can improve performance but also degrade it depending on the situation
-  # https://www.reddit.com/r/linux_gaming/comments/uhfjyt/underrated_advice_for_improving_gaming/
+  # "Huge pages reduces TLB pressure, but THP support introduces latency spikes when pages are promoted into huge pages and when memory compaction is triggered"
+  # see:
+  # - https://rigtorp.se/low-latency-guide/
+  # - https://www.reddit.com/r/linux_gaming/comments/uhfjyt/underrated_advice_for_improving_gaming/
   # Check with:
   #   cat /proc/meminfo | grep HugePages
   # (AnonHugePages are the THP)
@@ -194,8 +209,12 @@ lib.mkIf config.nix4games.kernel.enable {
   ];
 
   security = {
+    allowUserNamespaces = true;
+
     # required by podman to run containers in rootless mode when using linuxPackages_hardened
-    #unprivilegedUsernsClone = true;
+    unprivilegedUsernsClone = true;
+
+    allowSimultaneousMultithreading = true;
 
     # prevent replacing the running kernel image
     protectKernelImage = true;
