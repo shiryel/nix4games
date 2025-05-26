@@ -40,7 +40,7 @@ lib.mkIf config.nix4games.services.enable {
 
   # SSH AGENT
   programs.ssh = {
-    startAgent = false;
+    startAgent = true;
     knownHosts = {
       "github.com".hostNames = [ "github.com" ];
       "github.com".publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
@@ -78,8 +78,12 @@ lib.mkIf config.nix4games.services.enable {
   ###############
 
   # Generate GPG Keys With Curve Ed25519: https://www.digitalneanderthal.com/post/gpg/
+  # See:
+  # - https://www.latacora.com/blog/2019/07/16/the-pgp-problem/
+  # - https://words.filippo.io/giving-up-on-long-term-pgp/
+  # - https://soatok.blog/2024/11/15/what-to-use-instead-of-pgp/
   programs.gnupg.agent = {
-    enable = true;
+    enable = false;
     # cache SSH keys added by the ssh-add
     enableSSHSupport = true;
     # set up a Unix domain socket forwarding from a remote system

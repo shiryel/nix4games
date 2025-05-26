@@ -25,7 +25,7 @@ let
   mimeapps =
     let
       text = "neovim.desktop;neovide.desktop;nvim.desktop;vim.desktop;";
-      images = "imv-dir.desktop;imv.desktop;org.kde.gwenview.desktop;";
+      images = "imv-dir.desktop;imv.desktop;swayimg.desktop;swayimg-dir.desktop;org.kde.gwenview.desktop;";
       browser = "firefox.desktop;librewolf.desktop;chromium-browser.desktop;";
     in
     pkgs.writeText "mimeapps" (lib.generators.toINI { } {
