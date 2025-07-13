@@ -38,6 +38,7 @@ let
         "image/krita" = "krita.desktop;";
         "image/*" = images;
         "image/webp" = images;
+        "image/avif" = images;
         "image/gif" = images;
         "image/png" = images;
         "image/jpg" = images;

@@ -14,7 +14,7 @@ lib.mkIf config.nix4games.services.enable {
   ############
 
   # sets a gnome-keyring on dbus and portals, the security.wrapper is not a setuid, so its not a security risk
-  services.gnome.gnome-keyring.enable = true;
+  #services.gnome.gnome-keyring.enable = true;
 
   security.sudo.execWheelOnly = false; # btrbk needs this false to work
 
