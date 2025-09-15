@@ -1,7 +1,10 @@
 # Run screenshare wayland and improves containerized apps
 #
 # -- TEST --
-# Use qdbusviewer or...
+#
+# `busctl --user` or `qdbusviewer` to see portal services
+# `ashpd-demo` to manually test the portal services
+# `python3Packages.keyring` to test the secrets service
 #
 # Test DBUS calls with:
 #   nix shell nixpkgs#glib
@@ -26,39 +29,51 @@
 
 { config, lib, pkgs, ... }:
 
-lib.mkIf config.nix4games.xdg_portals.enable {
+lib.mkIf config.nix4games.xdg-portals.enable {
   xdg.portal = {
     enable = true;
 
-    # NOTE: xdg-desktop-portal (for sandbox apps) can't be added directly
-    # it relies on other portals (like xdg-desktop-portal-gtk)
+    # https://wiki.archlinux.org/title/XDG_Desktop_Portal#List_of_backends_and_interfaces
+    # NOTES:
+    # - xdg-desktop-portal just handles request, it needs extraPortals implementing the backend (e.g.: 
+    # xdg-desktop-portal-gtk for sandbox apps and common services like "Open With...") 
+    # - some apps include their own services, see: `ls /run/current-system/sw/share/dbus-1/services/`
     extraPortals = with pkgs; [
-      xdg-desktop-portal-wlr
-      # may need GTK_USE_PORTAL=1 on a app, because setting it gtksystem wide is unstable
-      xdg-desktop-portal-gtk # flatpak xdg-desktop-portal, this provides the "Open With…" window
-      xdg-desktop-portal-hyprland
+      xdg-desktop-portal-gtk # may need GTK_USE_PORTAL=1 on a app, because setting it gtksystem wide is unstable
+      xdg-desktop-portal-gnome
     ];
 
     # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1050913
-    # https://github.com/emersion/xdg-desktop-portal-wlr/blob/master/contrib/wlroots-portals.conf
-    # https://github.com/emersion/xdg-desktop-portal-wlr/pull/315
     config = {
-      # https://wiki.archlinux.org/title/XDG_Desktop_Portal#List_of_backends_and_interfaces
       # cat /etc/xdg/xdg-desktop-portal/portals.conf
-      sway = lib.mkForce {
-        # https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/programs/wayland/sway.nix#L147
-        default = [
-          "gtk"
-        ];
+      common = lib.mkForce {
+        default = [ "gtk" ];
+      };
+
+      # https://github.com/emersion/xdg-desktop-portal-wlr/blob/master/contrib/wlroots-portals.conf
+      sway = {
+        default = [ "wlr" "gtk" ];
 
         #"org.freedesktop.impl.portal.ScreenCast" = "hyprland";
         #"org.freedesktop.impl.portal.Screenshot" = "hyprland";
-        "org.freedesktop.impl.portal.Secret" = "gnome-keyring";
 
         # ignore inhibit because gtk portal always returns as success,
         # despite the wlr portal not having an implementation,
         # stopping firefox from using wayland idle-inhibit
+        # https://github.com/labwc/labwc/pull/2205
+        # https://github.com/emersion/xdg-desktop-portal-wlr/pull/315
         "org.freedesktop.impl.portal.Inhibit" = "none";
+      };
+
+      niri = {
+        default = [ "gnome" "gtk" ];
+
+        "org.freedesktop.impl.portal.Access" = "gtk";
+        "org.freedesktop.impl.portal.Notification" = "gtk";
+
+        # disabling some useless portals...
+        "org.freedesktop.portal.RemoteDesktop" = "none";
+        "org.freedesktop.portal.Wallpaper" = "none";
       };
     };
 
@@ -69,3 +84,4 @@ lib.mkIf config.nix4games.xdg_portals.enable {
     xdgOpenUsePortal = true;
   };
 }
+

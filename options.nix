@@ -22,9 +22,11 @@ with lib;
     network.enable = mkEnableOption "enable network module";
     nix.enable = mkEnableOption "enable nix module";
     services.enable = mkEnableOption "enable services module";
+    polkit.enable = mkEnableOption "enable polkit module";
     oom.enable = mkEnableOption "enable out-of-memory module";
-    theme.enable = mkEnableOption "enable theme module";
-    xdg_mimes.enable = mkEnableOption "enable xdg mimes module";
-    xdg_portals.enable = mkEnableOption "enable xdg portals module";
+    dark-theme.enable = mkEnableOption "enable dark theme module";
+    xdg-mimes.enable = mkEnableOption "enable xdg mimes module";
+    xdg-portals.enable = mkEnableOption "enable xdg portals module";
+    keepassxc-keyring.enable = mkEnableOption "enable KeePassXC Keyring module";
   };
 }

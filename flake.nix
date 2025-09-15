@@ -17,9 +17,10 @@
         ./modules/nix.nix
         ./modules/services.nix
         ./modules/oom.nix
-        ./modules/theme.nix
+        ./modules/dark_theme.nix
         ./modules/xdg_mimes.nix
         ./modules/xdg_portals.nix
+        ./modules/keepassxc_keyring.nix
       ];
 
       # when using "packages" `nix flake show` gives "error: expected a derivation"

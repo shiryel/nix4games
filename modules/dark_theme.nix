@@ -14,7 +14,7 @@ let
 
   cursor_theme = "Nordzy-cursors";
   cursor_theme_package = pkgs.nordzy-cursor-theme;
-  cursor_size = 16;
+  cursor_size = 24;
 
   icon_theme = "Tela-purple"; # WhiteSur-dark
   icon_theme_package = pkgs.tela-icon-theme;
@@ -61,7 +61,7 @@ let
     theme=${main_theme_qt}
   '';
 in
-mkIf config.nix4games.theme.enable {
+mkIf config.nix4games.dark-theme.enable {
   gtk.iconCache.enable = true;
 
   systemd.user.tmpfiles.users."${config.nix4games.mainUser}".rules = [
@@ -89,20 +89,18 @@ mkIf config.nix4games.theme.enable {
     #xsettingsd # Some GTK applications running via XWayland, and some Java applications, need an XSettings daemon running in order to pick up the themes and font settings.
   ];
 
-  #qt = {
-  #  enable = true;
-  #  style = "kvantum";
-  #  platformTheme = "qt5ct"; 
-  #};
+  qt = {
+    enable = true;
+    style = "kvantum";
+    platformTheme = "qt5ct";
+  };
 
   environment.variables = {
     GTK_THEME = main_theme_gtk;
-    QT_QPA_PLATFORMTHEME = "qt5ct:qt6ct";
-    QT_STYLE_OVERRIDE = "kvantum";
     XCURSOR_SIZE = cursor_size;
     # See https://wiki.hyprland.org/Configuring/Environment-variables/
     XCURSOR_THEME = cursor_theme;
-    ADW_DISABLE_PORTAL = 1; # recommended when not using xdg-desktop-portal-gnome, see: https://gitlab.gnome.org/GNOME/libadwaita/-/commit/e715fae6a509db006a805af816f9d163f81011ef
+    #ADW_DISABLE_PORTAL = 1; # recommended when not using xdg-desktop-portal-gnome, see: https://gitlab.gnome.org/GNOME/libadwaita/-/commit/e715fae6a509db006a805af816f9d163f81011ef
     #XCURSOR_PATH = "$XCURSOR_PATH\${XCURSOR_PATH:+:}${cursor_theme_package}/share/icons";
   };
 
@@ -134,8 +132,23 @@ mkIf config.nix4games.theme.enable {
     options = "nodeadkeys";
   };
 
+  # Enables font stem darkening
+  # https://freetype.org/freetype2/docs/hinting/text-rendering-general.html#experimental-stem-darkening-for-the-auto-hinter
+  environment.sessionVariables.FREETYPE_PROPERTIES = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0";
+
   fonts = {
-    fontconfig.enable = true;
+    fontconfig = {
+      enable = true;
+      # not very useful in high DPI displays
+      # maybe set to style = full and antialias = false? see: https://datagubbe.se/fontfest/
+      hinting = {
+        enable = true;
+        # https://freetype.org/freetype2/docs/hinting/text-rendering-general.html
+        style = "slight";
+        autohint = false;
+      };
+    };
+
     fontDir.enable = true;
 
     enableGhostscriptFonts = true;
@@ -188,6 +201,7 @@ mkIf config.nix4games.theme.enable {
           settings."org/gnome/desktop/interface" = {
             gtk-theme = main_theme_gtk;
             icon-theme = icon_theme;
+            color-scheme = "prefer-dark";
             cursor-theme = cursor_theme;
             cursor-size = lib.gvariant.mkInt32 cursor_size;
             gtk-im-module = "gtk-im-context-simple";

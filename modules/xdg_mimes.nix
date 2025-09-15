@@ -54,7 +54,7 @@ let
       "Removed Associations" = { };
     });
 in
-lib.mkIf config.nix4games.xdg_mimes.enable {
+lib.mkIf config.nix4games.xdg-mimes.enable {
   systemd.user.tmpfiles.users."${config.nix4games.mainUser}".rules = [
     "L+ %h/.config/mimeapps.list 777 - - - ${mimeapps}"
     "L+ %h/.local/share/applications/mimeapps.list 777 - - - ${mimeapps}"
