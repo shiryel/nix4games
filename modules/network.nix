@@ -61,7 +61,7 @@ lib.mkIf config.nix4games.network.enable {
   services = {
     resolved.enable = false;
 
-    dnscrypt-proxy2 = {
+    dnscrypt-proxy = {
       enable = true;
       # Use defaults from: https://github.com/DNSCrypt/dnscrypt-proxy/blob/master/dnscrypt-proxy/example-dnscrypt-proxy.toml
       upstreamDefaults = true;

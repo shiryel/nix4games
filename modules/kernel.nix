@@ -12,7 +12,7 @@ lib.mkIf config.nix4games.kernel.enable {
 
   environment.systemPackages = [
     config.boot.kernelPackages.turbostat
-    config.boot.kernelPackages.perf
+    pkgs.perf
 
     # see: https://wiki.archlinux.org/title/Realtime_kernel_patchset#Latency_testing_utilities
     # sudo cyclictest --smp -p98 -m
