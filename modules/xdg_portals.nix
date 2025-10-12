@@ -70,10 +70,13 @@ lib.mkIf config.nix4games.xdg-portals.enable {
 
         "org.freedesktop.impl.portal.Access" = "gtk";
         "org.freedesktop.impl.portal.Notification" = "gtk";
+        # gnome impl expects Nautilus to be installed, see:
+        # https://bbs.archlinux.org/viewtopic.php?id=299593
+        "org.freedesktop.impl.portal.FileChooser" = "gtk";
 
         # disabling some useless portals...
-        "org.freedesktop.portal.RemoteDesktop" = "none";
-        "org.freedesktop.portal.Wallpaper" = "none";
+        "org.freedesktop.impl.portal.RemoteDesktop" = "none";
+        "org.freedesktop.impl.portal.Wallpaper" = "none";
       };
     };
 
