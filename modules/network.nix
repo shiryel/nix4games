@@ -1,4 +1,4 @@
-# Enables dnscrypt-proxy2 for security, to cache requests and to find the best DNS server to connect
+# Enables dnscrypt-proxy for security, to cache requests and to find the best DNS server to connect
 #
 # -- TEST --
 # To see the logs:
@@ -53,7 +53,7 @@ lib.mkIf config.nix4games.network.enable {
 
   users.extraGroups.networkmanager.members = [ config.nix4games.mainUser ];
 
-  # FIXES: failed to sufficiently increase receive buffer size (from dnscrypt-proxy2.service)
+  # FIXES: failed to sufficiently increase receive buffer size (from dnscrypt-proxy.service)
   # https://github.com/quic-go/quic-go/wiki/UDP-Receive-Buffer-Size
   boot.kernel.sysctl."net.core.rmem_max" = 7500000; # default 212992
   boot.kernel.sysctl."net.core.wmem_max" = 7500000; # default 212992

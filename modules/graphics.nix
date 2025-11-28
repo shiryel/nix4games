@@ -56,7 +56,7 @@
 lib.mkIf config.nix4games.graphics.enable {
   # Useful for debugging
   environment.systemPackages = with pkgs; [
-    glxinfo # glxgears
+    mesa-demos # glxgears
     vulkan-tools # vulkaninfo
     clinfo
     #rocmPackages.rocm-smi # ROCm System Management Interface 

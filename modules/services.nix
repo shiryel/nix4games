@@ -1,10 +1,6 @@
 { config, lib, pkgs, ... }:
 
 lib.mkIf config.nix4games.services.enable {
-  # lets android devices connect
-  services.udev.packages = [ pkgs.android-udev-rules ];
-  users.groups.adbusers = { }; # To enable device as a user device if found (add an "android" SYMLINK)
-
   # Trimming enables the SSD to more efficiently handle garbage collection,
   # which would otherwise slow future write operations to the involved blocks.
   services.fstrim.enable = true;

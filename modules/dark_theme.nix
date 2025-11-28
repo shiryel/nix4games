@@ -169,8 +169,7 @@ mkIf config.nix4games.dark-theme.enable {
       inter
       libertine
       noto-fonts
-      noto-fonts-emoji
-      noto-fonts-extra
+      noto-fonts-color-emoji
       roboto
       roboto-mono
       roboto-slab
