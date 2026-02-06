@@ -41,7 +41,6 @@ let
     gtk-theme-name=${main_theme_gtk}
     gtk-icon-theme-name=${icon_theme}
     gtk-cursor-theme-name=${cursor_theme}
-    gtk-application-prefer-dark-theme=true
     gtk-decoration-layout=icon:minimize,maximize,close
     gtk-enable-animations=true
     gtk-recent-files-enabled=1

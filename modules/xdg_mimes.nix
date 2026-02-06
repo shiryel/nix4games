@@ -50,6 +50,8 @@ let
         "application/pdf" = browser;
         "x-scheme-handler/http" = browser;
         "x-scheme-handler/https" = browser;
+        "x-scheme-handler/steamvr" = "URI-vrmonitor.desktop";
+        "x-scheme-handler/vrmonitor" = "URI-steamvr.desktop";
       };
       "Removed Associations" = { };
     });
@@ -71,6 +73,31 @@ lib.mkIf config.nix4games.xdg-mimes.enable {
       mimeTypes = [ "text/english" "text/plain" "text/x-makefile" "text/x-c++hdr" "text/x-c++src" "text/x-chdr" "text/x-csrc" "text/x-java" "text/x-moc" "text/x-pascal" "text/x-tcl" "text/x-tex" "application/x-shellscript" "text/x-c" "text/x-c++" ];
       categories = [ "Utility" "TextEditor" ];
       exec = "${lib.getExe foot} -e ${lib.getExe neovim} %F";
+    })
+
+    (makeDesktopItem {
+      name = "URI-steamvr";
+      desktopName = "URI SteamVR";
+      genericName = "SteamVR";
+      type = "Application";
+      icon = "steam";
+      terminal = false;
+      mimeTypes = [ "x-scheme-handler/steamvr" ];
+      categories = [ "Game" ];
+      exec = ''${lib.getExe bash} -c "\\$HOME/.local/share/Steam/steamapps/common/SteamVR/bin/linux64/vrurlhandler %U"'';
+    })
+
+    (makeDesktopItem {
+      name = "URI-vrmonitor";
+      desktopName = "URI VRmonitor";
+      genericName = "VRmonitor";
+      comment = "URI handler for vrmonitor://";
+      type = "Application";
+      icon = "steam";
+      terminal = false;
+      mimeTypes = [ "x-scheme-handler/vrmonitor" ];
+      categories = [ "Game" ];
+      exec = ''${lib.getExe bash} -c "\\$HOME/.local/share/Steam/steamapps/common/SteamVR/bin/vrmonitor.sh %U"'';
     })
   ];
 }

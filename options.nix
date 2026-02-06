@@ -19,6 +19,8 @@ with lib;
     graphics.enable = mkEnableOption "enable graphics module";
     kernel.enable = mkEnableOption "enable kernel module";
     kernel.enableZram = mkEnableOption "enable kernel zram config";
+    kernel.enableZswap = mkEnableOption "enable kernel zswap config (recommended)";
+    kernel.enableHugepages = mkEnableOption "enable kernel hugepage config";
     network.enable = mkEnableOption "enable network module";
     nix.enable = mkEnableOption "enable nix module";
     services.enable = mkEnableOption "enable services module";

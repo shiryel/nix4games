@@ -7,8 +7,22 @@ lib.mkIf config.nix4games.kernel.enable {
   # - linuxPackages_hardened
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  # add the LTS kernel to the boot options, with the current config
+  specialisation = {
+    LTS = {
+      inheritParentConfig = true;
+      configuration = {
+        boot.kernelPackages = lib.mkForce pkgs.linuxPackages;
+        boot.loader.systemd-boot.sortKey = lib.mkForce "o_nixos";
+      };
+    };
+  };
+
   boot.loader.grub.memtest86.enable = true;
-  boot.loader.systemd-boot.memtest86.enable = true;
+  boot.loader.systemd-boot.memtest86 = {
+    enable = true;
+    sortKey = "z_memtest86"; # set as last
+  };
 
   environment.systemPackages = [
     config.boot.kernelPackages.turbostat
@@ -19,12 +33,6 @@ lib.mkIf config.nix4games.kernel.enable {
     # sudo hwlatdetect --duration=120 --threshold=15
     pkgs.rt-tests
   ];
-
-  zramSwap = {
-    enable = config.nix4games.kernel.enableZram;
-    algorithm = "zstd";
-    memoryPercent = 40; # maximum amount, not the used amount
-  };
 
   boot.kernel.sysctl = {
     ################################
@@ -68,15 +76,6 @@ lib.mkIf config.nix4games.kernel.enable {
     "kernel.soft_watchdog" = 0;
     "kernel.watchdog" = 0;
 
-    # High Precision Event Timer (similar to rtc.c driver)
-    # mainly used for audio, interrupts can be calculated like: 1000/64 = 15.625ms per CPU
-    # see:
-    # - https://linuxmusicians.com/viewtopic.php?t=25625
-    # - https://github.com/torvalds/linux/blob/e0daef7de1acecdb64c1fa31abc06529abb98710/Documentation/admin-guide/rtc.rst#old-pcat-compatible-driver--devrtc
-    # notes:
-    # - may reduce audio crackling
-    "dev.hpet.max-user-freq" = 2048; # default: 64 hz
-
     # Max file-handles allocations
     # configure with a rate of 256 for every 4M of RAM (e.g. for 32GB: 32768/4*256 = 2097152)
     # NOTE: it's user limited by pam.loginLimits nofile!
@@ -99,6 +98,18 @@ lib.mkIf config.nix4games.kernel.enable {
     # of 100 makes the kernel less inclined to reclaim VFS cache (do not set it to 0, this
     # may produce out-of-memory conditions)
     "vm.vfs_cache_pressure" = 50; # default: 100
+
+    # For pro-audio, see:
+    # https://wiki.archlinux.org/title/Professional_audio#Optimizing_system_configuration
+    #
+    # High Precision Event Timer (similar to rtc.c driver)
+    # mainly used for audio, interrupts can be calculated like: 1000/64 = 15.625ms per CPU
+    # see:
+    # - https://linuxmusicians.com/viewtopic.php?t=25625
+    # - https://github.com/torvalds/linux/blob/e0daef7de1acecdb64c1fa31abc06529abb98710/Documentation/admin-guide/rtc.rst#old-pcat-compatible-driver--devrtc
+    # notes:
+    # - may reduce audio crackling
+    "dev.hpet.max-user-freq" = 2048; # default: 64 hz
 
     ############################################################
     # Tweaking kernel parameters for response time consistency #
@@ -140,10 +151,17 @@ lib.mkIf config.nix4games.kernel.enable {
     # Persistent Hugepages #
     ########################
     # https://gist.github.com/sjenning/b6bed5bf029c9fd6f078f76b37f0a73f
+    # Configuring this defeats the purpose of Transparent Hugepages
+    # This is recommended for VMs
     #
     # "vm.nr_hugepages" = 125; # 2M per page = 250MB reserved
     # "vm.nr_overcommit_hugepages" = 875; # 250MB + 1750MB = 2GB max
-  } // (if config.nix4games.kernel.enableZram then {
+  } // (if config.nix4games.kernel.enableZswap then {
+    # Rough relative IO cost of swapping and filesystem paging
+    # - may impact audio crackling
+    # NOTE: as we are using zramSwap this value can be higher than 10, even 100 should be fine
+    "vm.swappiness" = 50; # default: 60, recommended if using swap on HDDs: 10
+  } else { }) // (if config.nix4games.kernel.enableZram then {
     # zramSwap with zstd has zero throughput gain from readahead
     # see: https://www.reddit.com/r/Fedora/comments/mzun99/new_zram_tuning_benchmarks/
     "vm.page-cluster" = 0; # default: 3
@@ -151,29 +169,79 @@ lib.mkIf config.nix4games.kernel.enable {
     # Rough relative IO cost of swapping and filesystem paging
     # - may impact audio crackling
     # NOTE: as we are using zramSwap this value can be higher than 10, even 100 should be fine
-    "vm.swappiness" = 180; # default: 60, recommended if using swap: 10
+    "vm.swappiness" = 180; # default: 60, recommended if using swap on HDDs: 10
   } else { });
 
-  # There certain uncertainty about THP, as it can improve performance but also degrade it depending on the situation
-  # "Huge pages reduces TLB pressure, but THP support introduces latency spikes when pages are promoted into huge pages and when memory compaction is triggered"
-  # see:
-  # - https://rigtorp.se/low-latency-guide/
-  # - https://www.reddit.com/r/linux_gaming/comments/uhfjyt/underrated_advice_for_improving_gaming/
-  # Check with:
-  #   cat /proc/meminfo | grep HugePages
-  # (AnonHugePages are the THP)
-  #environment.etc."tmpfiles.d/thp.conf".text = ''
-  #  w /sys/kernel/mm/transparent_hugepage/enabled - - - - never
-  #'';
+  # Notes on Swap:
+  # - "If your workload rarely touches swap or your swap needs are comfortably served by compressing a few
+  # gigabytes, zram is an elegant, easy solution. But when swap usage is large and unpredictable, or you
+  # have a fast NVMe drive, zswap’s write‑behind cache and dynamic pool offer a smoother experience." [1]
+  # - Some programs require swap to work, even if they don't need to use it, e.g.: hashcat [2]
+  # - Swap don't needs to be on a partition anymore, as SSDs don't need to worry about fragmentation,
+  # continuous access or into reducing head seeking by placing the data on the edge of the "disk" [3]
+  # [1] https://linuxblog.io/zswap-better-than-zram/
+  # [2] https://www.reddit.com/r/archlinux/comments/1ivwv1l/zram_vs_zswap_vs_swap/
+  # [3] https://www.reddit.com/r/linuxquestions/comments/196mzll/why_would_anyone_prefer_to_use_a_swap_partition/
+  zramSwap = lib.mkIf config.nix4games.kernel.enableZram {
+    enable = true;
+    algorithm = "zstd";
+    memoryPercent = 40; # maximum amount, not the used amount
+  };
+
+  # Notes on sysctl vs sysfs:
+  # - "'sysctl' and 'sysfs' are independent concepts that attempt to address somewhat similar goals. sysctl is a "mangement information base" to
+  # which access is provided through the /proc filesystem. It may be that some values accessible through sysctl (i.e. /proc/sys) are also
+  # accessible through /sys, but that is certainly not the norm." [1]
+  # - The old way of configuring sysfs:
+  #   environment.etc."tmpfiles.d/thp.conf".text = ''
+  #      w /sys/kernel/mm/transparent_hugepage/enabled - - - - never
+  #   '';
+  # [1] https://lwn.net/Articles/379807/
+  boot.kernel.sysfs = {
+    #module.zswap.parameters = lib.mkIf config.nix4games.kernel.enableZswap {
+    #  enabled = true;
+    #  zpool = "zsmalloc";
+    #  compressor = "zstd";
+    #  max_pool_percent = 25;
+    #  shrinker_enabled = true;
+    #};
+
+    # - There certain uncertainty about THP, as it can improve performance but also degrade it depending on the situation [1]
+    # - "Huge pages reduces TLB pressure, but THP support introduces latency spikes when pages are promoted into huge pages
+    # and when memory compaction is triggered" [2]
+    # - `always` is an opt-out option, applications that don't work well with THP can explicit disable with MADV_NOHUGEPAGE [3]
+    # [1] https://www.reddit.com/r/linux_gaming/comments/uhfjyt/underrated_advice_for_improving_gaming/
+    # [2] https://rigtorp.se/low-latency-guide/
+    # [3] https://serverfault.com/questions/896097/configuring-transparent-hugepages-always-madvise-or-never
+    #
+    # Check with: `cat /proc/meminfo | grep HugePages` (AnonHugePages are the THP)
+    kernel.mm.transparent_hugepage = lib.mkIf config.nix4games.kernel.enableHugepages {
+      enabled = "always";
+      defrag = "defer"; # don't delay memory allocation to reclaim pages and compact memory
+      shmem_enabled = "within_size"; # https://www.kernel.org/doc/html/latest/admin-guide/mm/transhuge.html#shmem-internal-tmpfs
+    };
+
+    # For pro-audio, see:
+    # https://wiki.archlinux.org/title/Professional_audio#Optimizing_system_configuration
+    class.rtc.rtc0.max_user_freq = 2048;
+  };
 
   boot = {
     kernelParams = [
       "threadirqs"
       "split_lock_detect=off" # do not detect or warn about split_lock
-    ];
-    postBootCommands = ''
-      echo 2048 > /sys/class/rtc/rtc0/max_user_freq
-    '';
+    ] ++ (if config.nix4games.kernel.enableZswap then [
+      "zswap.enabled=1"
+      "zswap.compressor=zstd"
+      "zswap.zpool=zsmalloc"
+      # Maximum percentage of system memory that Zswap can occupy (1-100)
+      # Higher values provide more compression cache but increase memory pressure
+      "zswap.max_pool_percent=25"
+      # When enabled, the shrinker will automatically reclaim compressed pages
+      # from the zswap pool when the system is under memory pressure, helping
+      # to prevent out-of-memory situations
+      "zswap.shrinker_enabled=1"
+    ] else [ ]);
     #setpci -v -d *:* latency_timer=b0
   };
 
