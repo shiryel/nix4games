@@ -18,7 +18,9 @@ lib.mkIf config.nix4games.nix.enable {
   documentation = {
     man = {
       enable = true;
-      generateCaches = false; # generate the index (needed by tools like apropos)
+      cache = {
+        enable = false; # generate the index (needed by tools like apropos)
+      };
     };
     dev.enable = true;
     nixos.enable = true;

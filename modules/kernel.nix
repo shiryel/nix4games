@@ -77,9 +77,9 @@ lib.mkIf config.nix4games.kernel.enable {
     "kernel.watchdog" = 0;
 
     # Max file-handles allocations
-    # configure with a rate of 256 for every 4M of RAM (e.g. for 32GB: 32768/4*256 = 2097152)
+    # configure with a rate of 256 for every 4M of RAM (e.g. for 64GB: 64000/4*256 = 4096000)
     # NOTE: it's user limited by pam.loginLimits nofile!
-    "fs.file-max" = 2097152; # default: 9223372036854775807
+    "fs.file-max" = 4096000; # default: 9223372036854775807
 
     # https://wiki.archlinux.org/title/Sysctl#Virtual_memory
     # Percentage of total available memory that contains free pages and reclaimable pages at
