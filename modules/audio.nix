@@ -21,7 +21,7 @@ lib.mkIf config.nix4games.audio.enable {
     enable = true;
     audio.enable = true;
     alsa.enable = true;
-    alsa.support32Bit = false;
+    alsa.support32Bit = lib.mkForce false;
     pulse.enable = true; # required by pavucontrol
     jack.enable = true;
     wireplumber.enable = true;
