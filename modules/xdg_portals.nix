@@ -40,7 +40,6 @@ lib.mkIf config.nix4games.xdg-portals.enable {
     # - some apps include their own services, see: `ls /run/current-system/sw/share/dbus-1/services/`
     extraPortals = with pkgs; [
       xdg-desktop-portal-gtk # may need GTK_USE_PORTAL=1 on a app, because setting it gtksystem wide is unstable
-      xdg-desktop-portal-gnome
     ];
 
     # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1050913
@@ -52,10 +51,10 @@ lib.mkIf config.nix4games.xdg-portals.enable {
 
       # https://github.com/emersion/xdg-desktop-portal-wlr/blob/master/contrib/wlroots-portals.conf
       sway = {
-        default = [ "wlr" "gtk" ];
+        default = [ "gtk" "wlr" ];
 
-        #"org.freedesktop.impl.portal.ScreenCast" = "hyprland";
-        #"org.freedesktop.impl.portal.Screenshot" = "hyprland";
+        "org.freedesktop.impl.portal.ScreenCast" = [ "wlr" ];
+        "org.freedesktop.impl.portal.Screenshot" = [ "wlr" ];
 
         # ignore inhibit because gtk portal always returns as success,
         # despite the wlr portal not having an implementation,
@@ -77,6 +76,15 @@ lib.mkIf config.nix4games.xdg-portals.enable {
         # disabling some useless portals...
         "org.freedesktop.impl.portal.RemoteDesktop" = "none";
         "org.freedesktop.impl.portal.Wallpaper" = "none";
+      };
+
+      hyprland = {
+        default = [ "gtk" "hyprland" ];
+
+        "org.freedesktop.impl.portal.ScreenCast" = [ "hyprland" ];
+        "org.freedesktop.impl.portal.Screenshot" = [ "hyprland" ];
+
+        "org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
       };
     };
 

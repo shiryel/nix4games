@@ -279,9 +279,6 @@ lib.mkIf config.nix4games.kernel.enable {
   security = {
     allowUserNamespaces = true;
 
-    # required by podman to run containers in rootless mode when using linuxPackages_hardened
-    unprivilegedUsernsClone = true;
-
     allowSimultaneousMultithreading = true;
 
     # prevent replacing the running kernel image

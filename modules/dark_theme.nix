@@ -8,9 +8,29 @@ let
 
   # DRACULA THEMES: Dracula | Dracula-Solid | Dracula-purple | Dracula-purple-solid
   # OTHER THEMES: Adwaita:dark | Mint-Y-Dark
-  main_theme_gtk = "Dracula";
-  main_theme_qt = "Dracula-Solid";
-  main_theme_package = pkgs.dracula-theme;
+
+  # catppuccin-<variant>-<accent>-<size>+<tweaks>
+  # e.g.: catppuccin-mocha-blue-standard+rimless,black
+  main_theme_gtk = "catppuccin-mocha-blue-standard+rimless";
+  main_theme_qt = "catppuccin-mocha-blue";
+
+  main_theme_package_gtk =
+    (pkgs.catppuccin-gtk.override {
+      variant = "mocha";
+      accents = [ "blue" ];
+      size = "standard";
+      # black: Uses pure black (#000000) backgrounds instead of the Catppuccin base color
+      # rimless: Remove the 1px border about windows and menus
+      # normal: Normal window button style (as opposed to the default smaller/compact button style)
+      # float: Floating style for certain elements
+      tweaks = [ "rimless" ];
+    });
+
+  # don't support size/tweaks
+  main_theme_package_kvantum = (pkgs.catppuccin-kvantum.override {
+    variant = "mocha";
+    accent = "blue";
+  });
 
   cursor_theme = "Nordzy-cursors";
   cursor_theme_package = pkgs.nordzy-cursor-theme;
@@ -73,11 +93,12 @@ mkIf config.nix4games.dark-theme.enable {
 
     # to find compatible themes: nix-locate -r 'kvconfig'
     "L+ %h/.config/Kvantum/kvantum.kvconfig 777 - - - ${kvantum_config}"
-    "L+ %h/.config/Kvantum/${main_theme_qt} 777 - - - ${main_theme_package}/share/Kvantum/${main_theme_qt}"
+    "L+ %h/.config/Kvantum/${main_theme_qt} 777 - - - ${main_theme_package_kvantum}/share/Kvantum/${main_theme_qt}"
   ];
 
   environment.systemPackages = [
-    main_theme_package
+    main_theme_package_gtk
+    main_theme_package_kvantum
     icon_theme_package
     cursor_theme_package
     pkgs.libsForQt5.qtstyleplugin-kvantum
